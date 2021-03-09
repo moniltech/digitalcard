@@ -97,6 +97,10 @@ const user = mongoose.Schema({
         type:String,
         default:"https://res.cloudinary.com/dc6ouyypu/image/upload/v1614057054/vcard/user/user-profile_nxo5gq.png",
     },
+    digiCardLogo:{
+        type:String,
+        default:"https://res.cloudinary.com/dc6ouyypu/image/upload/v1614057054/vcard/user/user-profile_nxo5gq.png",
+    },
     referalcode:{
         type:String,
     },

@@ -34,7 +34,45 @@ var userimage = multer.diskStorage({
 
 var Userimg = multer({ storage: userimage });
 
-router.post("/checkDigitalCardMember", Userimg.fields([{ name: 'imagecode' }, { name: 'coverimg' }]), async function(req, res, next) {
+// const PlaylistSummary = require('youtube-playlist-summary')
+// const config = {
+//   GOOGLE_API_KEY: 'YOUR_GOOGLE_API_KEY', // require
+//   PLAYLIST_ITEM_KEY: ['publishedAt', 'title', 'description', 'videoId', 'videoUrl'], // option
+// }
+ 
+// const ps = new PlaylistSummary(config)
+// const CHANNEL_ID = 'UCQCaS3atWyNHEy5PkDXdpNg'
+// const PLAY_LIST_ID = 'PL9f8_QifuTL4CS8-OyA-4WADhkddOnRS4'
+ 
+// ps.getPlaylistItems(PLAY_LIST_ID)
+//   .then((result) => {
+//     console.log(result)
+//   })
+//   .catch((error) => {
+//     console.error(error)
+//   })
+ 
+// ps.getPlaylists(CHANNEL_ID)
+//   .then((result) => {
+//     console.log(result)
+//   })
+//   .catch((error) => {
+//     console.error(error)
+//   })
+ 
+// ps.getSummary(CHANNEL_ID)
+//   .then((result) => {
+//     console.log(result)
+//   })
+//   .catch((error) => {
+//     console.error(error)
+//   })
+
+router.post("/checkDigitalCardMember", Userimg.fields([
+    { name: 'imagecode' }, 
+    { name: 'coverimg' },
+    { name: 'digiCardLogo' },
+]), async function(req, res, next) {
     // const { name, mobile, company_name,email,imagecode,referalcode,myreferalcode} = req.body;
     const {
         name,
@@ -68,6 +106,8 @@ router.post("/checkDigitalCardMember", Userimg.fields([{ name: 'imagecode' }, { 
     let cover_img = [];
     let fileimg = req.files.imagecode;
     let filecover = req.files.coverimg;
+    let digiCardLogoIs = req.files.digiCardLogo;
+    let userLogoPath;
 
     try {
         let isData = await usermodel.find({ mobile: req.body.mobile });
@@ -81,6 +121,17 @@ router.post("/checkDigitalCardMember", Userimg.fields([{ name: 'imagecode' }, { 
                     api_key: '296773621645811',
                     api_secret: 'yrCG_ZiUgIUIvXU782fAeCv2L_g'
                 });
+
+                if(digiCardLogoIs){
+                    let uniqimg = "";
+                    uniqimg = moment().format('MMMM Do YYYY, h:mm:ss a');
+                    let v = await cloudinary.uploader.upload(digiCardLogoIs[0].path, { public_id: `vcard/user/${uniqimg}`, tags: `vcard` }, function(err, result) {
+                        // console.log("Error : ", err);
+                        // console.log("Resilt : ", result);
+                        userLogoPath = result.url;
+                    });
+                    // return res.send(userLogoPath);
+                }
 
                 if (req.files.imagecode) {
                     let uniqimg = "";
@@ -128,6 +179,7 @@ router.post("/checkDigitalCardMember", Userimg.fields([{ name: 'imagecode' }, { 
                 company_mobile: company_mobile != undefined ? company_mobile : isData[0].company_mobile,
                 imagecode: imagecode != undefined || null ? user_img[0] : "https://res.cloudinary.com/dc6ouyypu/image/upload/v1614057054/vcard/user/user-profile_nxo5gq.png",
                 coverimg: coverimg != undefined || null ? cover_img[0] : "https://res.cloudinary.com/dc6ouyypu/image/upload/v1614056361/vcard/user/The-National-Dawn_scxuio.jpg",
+                digiCardLogo: digiCardLogoIs != undefined || null ? userLogoPath : "https://res.cloudinary.com/dc6ouyypu/image/upload/v1614057054/vcard/user/user-profile_nxo5gq.png",
                 referalcode: req.body.referalcode == undefined ? "" : req.body.referalcode,
                 myreferalcode: req.body.myreferalcode == undefined ? "" : req.body.myreferalcode,
             });
@@ -157,13 +209,31 @@ router.post("/login", async function(req, res, next) {
     }
 });
 
-router.post("/addservice", async function(req, res, next) {
-    const { title, memberid, description } = req.body;
+router.post("/addservice",Userimg.single('serviceimg'), async function(req, res, next) {
+    const { title, memberid, description,serviceimg } = req.body;
+    let offerimg;
+    let fileimg = req.file;
+    let ser_img=[];
     try {
+        if(req.file){
+            const cloudinary = require('cloudinary').v2;
+            cloudinary.config({
+                cloud_name: 'dc6ouyypu',
+                api_key: '296773621645811',
+                api_secret: 'yrCG_ZiUgIUIvXU782fAeCv2L_g'
+            });
+
+            offerimg = "";
+            offerimg = moment().format('MMMM Do YYYY, h:mm:ss a');
+            let v = await cloudinary.uploader.upload(fileimg.path, { public_id: `vcard/offer/${offerimg}`, tags: `vcard` }, function(err, result) {
+                ser_img[0] = result.url;
+            });
+        }
         let newservice = await new servicemodel({
             title: title,
             description: description,
             memberId: memberid,
+            serviceimg : req.file != undefined ? ser_img[0] : "",
         });
         if (newservice) {
             newservice.save();
@@ -719,7 +789,7 @@ router.post("/updateservice", async function(req, res, next) {
             let updatedata = {
                 title: title,
                 description: description
-            }
+            };
             let updatedservice = await servicemodel.findByIdAndUpdate(serviceId, updatedata);
             if (updatedservice) {
                 let findupdated = await servicemodel.findById(serviceId);
