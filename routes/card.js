@@ -354,7 +354,11 @@ router.post("/getsingleuserdata", async function(req, res, next) {
     }
 });
 
-router.post("/updateprofile",Userimg.fields([{ name: 'imagecode' }, { name: 'coverimg' }]), async function(req,res,next){
+router.post("/updateprofile",Userimg.fields([
+    { name: 'imagecode' }, 
+    { name: 'coverimg' },
+    { name: 'digiCardLogo' },
+]), async function(req,res,next){
     const {
         memberid,
         name,
@@ -383,10 +387,13 @@ router.post("/updateprofile",Userimg.fields([{ name: 'imagecode' }, { name: 'cov
         shareMsg,
         coverimg
     } = req.body; 
+
     let user_img=[];
     let cover_img =[];
     const fileimg = req.files.imagecode;
     const filecover = req.files.coverimg;
+    let digiCardLogoIs = req.files.digiCardLogo;
+    let userLogoPath;
     
     if(req.files){
         console.log("1");
@@ -396,6 +403,17 @@ router.post("/updateprofile",Userimg.fields([{ name: 'imagecode' }, { name: 'cov
             api_key: '296773621645811',
             api_secret: 'yrCG_ZiUgIUIvXU782fAeCv2L_g'
         });
+
+        if(digiCardLogoIs){
+            let uniqimg = "";
+            uniqimg = moment().format('MMMM Do YYYY, h:mm:ss a');
+            let v = await cloudinary.uploader.upload(digiCardLogoIs[0].path, { public_id: `vcard/user/${uniqimg}`, tags: `vcard` }, function(err, result) {
+                // console.log("Error : ", err);
+                // console.log("Resilt : ", result);
+                userLogoPath = result.url;
+            });
+            // return res.send(userLogoPath);
+        }
 
         if (req.files.imagecode){
         console.log("2");
@@ -452,6 +470,7 @@ router.post("/updateprofile",Userimg.fields([{ name: 'imagecode' }, { name: 'cov
                 company_mobile: company_mobile != undefined ? company_mobile : isuser[0].company_mobile,
                 imagecode: req.files.imagecode != undefined ? user_img[0] : isuser[0].imagecode,
                 coverimg: req.files.coverimg != undefined ? cover_img[0] : isuser[0].coverimg,
+                digiCardLogo: digiCardLogoIs != undefined || null ? userLogoPath : "https://res.cloudinary.com/dc6ouyypu/image/upload/v1614057054/vcard/user/user-profile_nxo5gq.png"
             };
             let updateprofile = await usermodel.findByIdAndUpdate(memberid,updateuser);
             if(updateprofile){
